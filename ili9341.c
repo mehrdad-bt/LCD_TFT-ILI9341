@@ -7,6 +7,10 @@
 
 #include "ili9341.h"
 #include "font.h"
+#include "string.h"
+#include "stdio.h"
+#include "stm32f4xx_hal.h"
+
 
 static SPI_HandleTypeDef *hspi;
 static GPIO_TypeDef* CS_port;
@@ -15,6 +19,16 @@ static GPIO_TypeDef* DC_port;
 static uint16_t DC_pin;
 static GPIO_TypeDef* RESET_port;
 static uint16_t RESET_pin;
+
+
+static SPI_HandleTypeDef *hspi_touch;
+static GPIO_TypeDef* touch_cs_port;
+static uint16_t touch_cs_pin;
+
+
+
+
+
 
 //write a command
 
@@ -281,6 +295,66 @@ void ILI9341_DrawString(uint16_t x, uint16_t y, const char* str, uint16_t fg_col
 }
 
 
+void Touch_Init(SPI_HandleTypeDef *hspi_instance, GPIO_TypeDef* touch_cs_port_instance,uint16_t touch_cs_pin_instance)
+{
+	//initialize touch controller spi and gpio setting
+
+	hspi_touch = hspi_instance;
+	touch_cs_port = touch_cs_port_instance;
+	touch_cs_pin = touch_cs_pin_instance;
+
+	//set the touch chip select high (inactive)
+	HAL_GPIO_WritePin(touch_cs_port, touch_cs_pin, GPIO_PIN_SET);
+
+}
+
+
+uint16_t Touch_Read(uint8_t command)
+{
+	//read touch data from touch controller
+
+	uint8_t tx_data[3] = {command, 0x00, 0x00};
+	uint8_t rx_data[3] = {0};
+
+	HAL_GPIO_WritePin(touch_cs_port, touch_cs_pin, GPIO_PIN_RESET);
+	HAL_SPI_TransmitReceive(hspi_touch, tx_data, rx_data, 3, HAL_MAX_DELAY);
+	HAL_GPIO_WritePin(touch_cs_port, touch_cs_pin, GPIO_PIN_SET);
+
+	return ((rx_data[1] << 8)  | rx_data[2] ) >> 3;
+
+
+
+}
+
+void Touch_GetCoordinates(uint16_t *x, uint16_t *y, uint16_t *z)
+{
+	//read x,y,z (pressure) coordinates
+
+	*x = Touch_Read(0xD0);
+	*y = Touch_Read(0x90);
+	*z = Touch_Read(0xb0);
+
+
+}
+
+
+void Touch_Calibrate(uint16_t raw_x, uint16_t raw_y, uint16_t *display_x, uint16_t *display_y)
+{
+	//calibrate raw touch coordinates to display coordinates
+
+	uint16_t raw_x_min = 200;
+	uint16_t raw_x_max = 2000;
+	uint16_t raw_y_min = 200;
+	uint16_t raw_y_max = 2000;
+
+
+	*display_x = (raw_x - raw_x_min) * 239 / (raw_x_max -raw_x_min);
+	*display_y = (raw_y - raw_y_min) * 319 / (raw_y_max -raw_y_min);
+
+	if(*display_x >= 240) *display_x = 239;
+	if(*display_y >= 320) *display_y = 319;
+
+}
 
 
 
