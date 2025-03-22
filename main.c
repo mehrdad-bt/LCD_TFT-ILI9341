@@ -391,9 +391,13 @@ int main(void)
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
   ILI9341_Init(&hspi1, GPIOA, GPIO_PIN_2, GPIOA, GPIO_PIN_1, GPIOA, GPIO_PIN_0);
+  Touch_Init(&hspi1, GPIOB, GPIO_PIN_1);
   ILI9341_FillScreen(COLOR_BLACK);
-  ILI9341_DrawString(50,100,"Mehrdad_bt", COLOR_WHITE, COLOR_RED,2);
-  ILI9341_DrawImage(120,120,50,50,test);
+
+
+
+ // ILI9341_DrawString(50,100,"Mehrdad_bt", COLOR_WHITE, COLOR_RED,2);
+//  ILI9341_DrawImage(120,120,50,50,test);
 
  // ILI9341_DrawImage(0 ,0 ,320 ,240, my_image);
 
@@ -406,6 +410,21 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	if(HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_0)== GPIO_PIN_RESET)
+	{
+		uint16_t raw_x , raw_y, z;
+		Touch_GetCoordinates(&raw_x, &raw_y, &z);
+
+		if(z >100)
+		{
+			uint16_t display_x, display_y;
+			Touch_Calibrate(raw_x, raw_y, &display_x, &display_y);
+
+			ILI9341_DrawPixel(display_x, display_y, 0xffff);
+		}
+
+
+	}
   }
   /* USER CODE END 3 */
 }
@@ -506,11 +525,26 @@ static void MX_GPIO_Init(void)
 /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, RESET_Pin|DC_Pin|CS_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_1, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : PC13 */
+  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : RESET_Pin DC_Pin CS_Pin */
   GPIO_InitStruct.Pin = RESET_Pin|DC_Pin|CS_Pin;
@@ -518,6 +552,19 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PB0 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PB1 */
+  GPIO_InitStruct.Pin = GPIO_PIN_1;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
