@@ -1,7 +1,16 @@
+/*
+ * ili9341.h
+ *
+ *  Created on: Mar 21, 2025
+ *      Author: zbook
+ */
+
 #ifndef ILI9341_H
 #define ILI9341_H
 
-#include "stm32f1xx_hal.h"
+#include "stm32f4xx_hal.h"
+
+
 
 // ILI9341 Command Definitions (from the provided table)
 #define ILI9341_NOP             0x00 // No Operation
@@ -69,8 +78,10 @@
 #define COLOR_GREEN     0x07E0
 #define COLOR_BLUE      0x001F
 
+
+
 // Function Prototypes
-void ILI9341_Init(SPI_HandleTypeDef *hspi, GPIO_TypeDef* cs_port, uint16_t cs_pin, GPIO_TypeDef* dc_port, uint16_t dc_pin, GPIO_TypeDef* reset_port, uint16_t reset_pin);
+void ILI9341_Init(SPI_HandleTypeDef *hspi, GPIO_TypeDef* CS_port, uint16_t CS_pin, GPIO_TypeDef* DC_port, uint16_t DC_pin, GPIO_TypeDef* RESET_port, uint16_t RESET_pin);
 void ILI9341_WriteCommand(uint8_t cmd);
 void ILI9341_WriteData(uint8_t data);
 void ILI9341_SetAddressWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
@@ -79,5 +90,11 @@ void ILI9341_DrawPixel(uint16_t x, uint16_t y, uint16_t color);
 void ILI9341_DrawString(uint16_t x, uint16_t y, const char* str, uint16_t fg_color, uint16_t bg_color, uint8_t size);
 void ILI9341_FillRectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color);
 void ILI9341_DrawChar(uint16_t x, uint16_t y, char c, uint16_t fg_color, uint16_t bg_color, uint8_t size);
-
+void Touch_GetCoordinates(uint16_t *x, uint16_t *y, uint16_t *z);
+void Touch_Calibrate(uint16_t raw_x, uint16_t raw_y, uint16_t *display_x, uint16_t *display_y);
+void ILI9341_TouchTest(void);
+uint16_t Touch_Read(uint8_t command);
+void Touch_Init(SPI_HandleTypeDef *hspi_instance, GPIO_TypeDef* touch_cs_port_instance,uint16_t touch_cs_pin_instance);
 #endif
+
+
