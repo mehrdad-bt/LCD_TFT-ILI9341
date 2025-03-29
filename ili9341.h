@@ -10,7 +10,11 @@
 
 #include "stm32f4xx_hal.h"
 
-
+extern uint16_t raw_x;
+extern uint16_t raw_y;
+extern uint16_t raw_z;
+extern uint16_t calibrated_display_x;
+extern uint16_t calibrated_display_y;
 
 // ILI9341 Command Definitions (from the provided table)
 #define ILI9341_NOP             0x00 // No Operation
@@ -96,5 +100,3 @@ void ILI9341_TouchTest(void);
 uint16_t Touch_Read(uint8_t command);
 void Touch_Init(SPI_HandleTypeDef *hspi_instance, GPIO_TypeDef* touch_cs_port_instance,uint16_t touch_cs_pin_instance);
 #endif
-
-
