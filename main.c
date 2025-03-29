@@ -265,8 +265,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
 		Touch_GetCoordinates(&raw_x, &raw_y, &z);
 
-//		if(z >100)
-//		{
+		if(z >100)
+		{
 			uint16_t display_x, display_y;
 		 Touch_Calibrate(raw_x, raw_y, &display_x, &display_y);
 
