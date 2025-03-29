@@ -10,7 +10,9 @@
 #include "string.h"
 #include "stdio.h"
 #include "stm32f4xx_hal.h"
-
+#define TOUCH_RAW_Y_INVALID 4095
+#define TOUCH_RAW_X_INVALID 896
+#define TOUCH_RAW_Z_INVALID 511
 
 static SPI_HandleTypeDef *hspi;
 static GPIO_TypeDef* CS_port;
@@ -25,9 +27,14 @@ static SPI_HandleTypeDef *hspi_touch;
 static GPIO_TypeDef* touch_cs_port;
 static uint16_t touch_cs_pin;
 
+uint16_t raw_x = 0;
+uint16_t raw_y = 0;
+uint16_t raw_z = 0;
+uint16_t display_x = 0;
+uint16_t display_y = 0;
 
-
-
+uint16_t calibrated_display_x = 0;
+uint16_t calibrated_display_y = 0;
 
 
 //write a command
@@ -91,7 +98,7 @@ void ILI9341_SetAddressWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1
 
 void ILI9341_FillScreen(uint16_t color)
 {
-	ILI9341_SetAddressWindow(0, 0, 319, 239);
+	ILI9341_SetAddressWindow(0, 0, 239, 319);
 	for(uint32_t i = 0; i < 240*320 ; i++)
 	{
 		ILI9341_WriteData16(color); //send 16bit color data
@@ -141,7 +148,7 @@ void ILI9341_Init(SPI_HandleTypeDef *hspi_instance, GPIO_TypeDef* CS_port_instan
     ILI9341_WriteData(0x86);
 
     ILI9341_WriteCommand(ILI9341_MADCTL); // Memory access control
-    ILI9341_WriteData(0x28);
+    ILI9341_WriteData(0x48);
 
     ILI9341_WriteCommand(ILI9341_PIXFMT); // Pixel format
     ILI9341_WriteData(0x55);
@@ -320,44 +327,64 @@ uint16_t Touch_Read(uint8_t command)
 	HAL_SPI_TransmitReceive(hspi_touch, tx_data, rx_data, 3, HAL_MAX_DELAY);
 	HAL_GPIO_WritePin(touch_cs_port, touch_cs_pin, GPIO_PIN_SET);
 
-	return ((rx_data[1] << 8)  | rx_data[2] ) >> 3;
+    uint16_t raw_value = ((rx_data[1] << 8) | rx_data[2]) >> 3;
 
-
-
+    if (command == 0x90 && raw_value == TOUCH_RAW_Y_INVALID) {
+        return 0; // Return 0 for invalid Y-axis data
+    }
+		
+		    if (command == 0xD0 && raw_value == TOUCH_RAW_X_INVALID) {
+        return 0; // Return 0 for invalid Y-axis data
+    }
+				
+//				    if (command == 0xB0 && raw_value == TOUCH_RAW_Z_INVALID) {
+//        return 0; // Return 0 for invalid Y-axis data
+ //   }
+	return raw_value;
 }
 
 void Touch_GetCoordinates(uint16_t *x, uint16_t *y, uint16_t *z)
 {
+
 	//read x,y,z (pressure) coordinates
+		
+  raw_x = Touch_Read(0xD0); // Store raw X coordinate
+  raw_y = Touch_Read(0x90); // Store raw Y coordinate
+  raw_z = Touch_Read(0xB0); // Store raw Z (pressure) coordinate
 
-	*x = Touch_Read(0xD0);
-	*y = Touch_Read(0x90);
-	*z = Touch_Read(0xb0);
+	
+	//    if (*z == TOUCH_RAW_Z_INVALID) {
+ //       *x = 0;
+ //       *y = 0;
+//			}
+    // Optionally, you can still return the values via pointers
+ //   if (x) *x = raw_x;
+//    if (y) *y = raw_y;
+ //   if (z) *z = raw_z;
 
-
-}
-
+		}
 
 void Touch_Calibrate(uint16_t raw_x, uint16_t raw_y, uint16_t *display_x, uint16_t *display_y)
 {
 	//calibrate raw touch coordinates to display coordinates
 
-	uint16_t raw_x_min = 200;
-	uint16_t raw_x_max = 2000;
-	uint16_t raw_y_min = 200;
-	uint16_t raw_y_max = 2000;
+	uint16_t raw_x_min = 511;
+	uint16_t raw_x_max = 4197;
+	uint16_t raw_y_min = 3150;
+	uint16_t raw_y_max = 3641;
 
+//	*display_x = raw_x;
+//	*display_y = raw_y;
+    *display_x = (raw_x - raw_x_min) * 239 / (raw_x_max - raw_x_min);
+		    if (raw_y != TOUCH_RAW_Y_INVALID) {
+        *display_y = (raw_y - raw_y_min) * 319 / (raw_y_max - raw_y_min);
+    }
 
-	*display_x = (raw_x - raw_x_min) * 239 / (raw_x_max -raw_x_min);
-	*display_y = (raw_y - raw_y_min) * 319 / (raw_y_max -raw_y_min);
-
-	if(*display_x >= 240) *display_x = 239;
+	
+	  calibrated_display_x = *display_x;
+    calibrated_display_y = *display_y;
+	
+  if(*display_x >= 240) *display_x = 239;
 	if(*display_y >= 320) *display_y = 319;
 
 }
-
-
-
-
-
-
